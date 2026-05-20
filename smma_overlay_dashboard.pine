@@ -52,8 +52,8 @@ dcaCooldown = input.int(14,    "DCA cooldown (bars between DCA signals)", minval
 buyColor   = input.color(color.new(color.green, 0), "BUY label color",  group="Signals: Style")
 sellColor  = input.color(color.new(color.red, 0),   "SELL label color", group="Signals: Style")
 dcaColor   = input.color(color.new(color.blue, 0),  "DCA label color",  group="Signals: Style")
-buyTxtSize = input.string("normal", "BUY/SELL label size", options=["tiny", "small", "normal", "large"], group="Signals: Style")
-dcaTxtSize = input.string("small",  "DCA label size",      options=["tiny", "small", "normal", "large"], group="Signals: Style")
+// Note: plotshape() requires a const string for size, so the label sizes are
+// fixed (BUY/SELL = normal, DCA = small) instead of user-configurable.
 
 // ══════════════════════════════════════════════════════════════════════════════
 // MOVING AVERAGE CALCULATION
@@ -139,25 +139,11 @@ if sellSignal
 if dcaSignal
     lastDcaBar := bar_index
 
-// Convert label-size strings to size constants
-bsSize = switch buyTxtSize
-    "tiny"   => size.tiny
-    "small"  => size.small
-    "normal" => size.normal
-    "large"  => size.large
-    => size.normal
-
-dcSize = switch dcaTxtSize
-    "tiny"   => size.tiny
-    "small"  => size.small
-    "normal" => size.normal
-    "large"  => size.large
-    => size.small
-
 // Plot the signals as labels on the chart
-plotshape(showBuy  and buySignal,  title="BUY",  style=shape.labelup,   location=location.belowbar, color=buyColor,  text="BUY",  textcolor=color.white, size=bsSize)
-plotshape(showSell and sellSignal, title="SELL", style=shape.labeldown, location=location.abovebar, color=sellColor, text="SELL", textcolor=color.white, size=bsSize)
-plotshape(showDCA  and dcaSignal,  title="DCA",  style=shape.labelup,   location=location.belowbar, color=dcaColor,  text="DCA",  textcolor=color.white, size=dcSize)
+// (plotshape size must be a const string, so we use fixed sizes here)
+plotshape(showBuy  and buySignal,  title="BUY",  style=shape.labelup,   location=location.belowbar, color=buyColor,  text="BUY",  textcolor=color.white, size=size.normal)
+plotshape(showSell and sellSignal, title="SELL", style=shape.labeldown, location=location.abovebar, color=sellColor, text="SELL", textcolor=color.white, size=size.normal)
+plotshape(showDCA  and dcaSignal,  title="DCA",  style=shape.labelup,   location=location.belowbar, color=dcaColor,  text="DCA",  textcolor=color.white, size=size.small)
 
 // ══════════════════════════════════════════════════════════════════════════════
 // WATERMARK
