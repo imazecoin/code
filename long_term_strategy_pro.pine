@@ -1,0 +1,160 @@
+//@version=5
+indicator("Imazecoin Long Term Strategy PRO", overlay=false)
+
+// =====================================================
+// INPUTS
+// =====================================================
+
+length        = input.int(21, minval=5, title="VIX Lookback")
+rsiLength     = input.int(14, title="RSI Length")
+emaLength     = input.int(200, title="Trend EMA")
+atrLength     = input.int(14, title="ATR Length")
+
+buyThreshold  = input.float(18.0, title="Buy Threshold")
+sellThreshold = input.float(6.0, title="Sell Threshold")
+
+showLabels    = input.bool(true, title="Show Buy/Sell Labels")
+
+// -- Watermark Settings --
+showWatermark = input.bool(true, "Show Watermark", group="Watermark")
+watermarkText = input.string("IMAZECOIN", "Watermark Text", group="Watermark")
+watermarkColor= input.color(color.new(color.white, 85), "Watermark Color", group="Watermark")
+watermarkSize = input.string("huge", "Watermark Size", options=["tiny", "small", "normal", "large", "huge"], group="Watermark")
+
+// =====================================================
+// CORE VIX STYLE CALCULATION
+// =====================================================
+
+highest_close = ta.highest(close, length)
+ratio = 100 * (highest_close - low) / highest_close
+
+// =====================================================
+// TREND FILTER
+// =====================================================
+
+ema200 = ta.ema(close, emaLength)
+
+// Soft trend filter:
+// Allows buys below EMA200 only on extreme panic
+softTrend = close > ema200 or ratio > 25
+
+// =====================================================
+// RSI FILTER
+// =====================================================
+
+rsi = ta.rsi(close, rsiLength)
+
+// Relaxed RSI for daily chart
+oversold = rsi < 45
+overbought = rsi > 70
+
+// =====================================================
+// ATR VOLATILITY FILTER
+// =====================================================
+
+atr = ta.atr(atrLength)
+atrMA = ta.sma(atr, atrLength)
+
+highVolatility = atr > atrMA
+
+// =====================================================
+// MOMENTUM CONFIRMATION
+// =====================================================
+
+bullMomentum = close > close[1]
+bearMomentum = close < close[1]
+
+// =====================================================
+// BUY SIGNAL
+// =====================================================
+
+buySignal =
+     ratio > buyThreshold and
+     oversold and
+     softTrend and
+     bullMomentum
+
+// =====================================================
+// SELL SIGNAL
+// =====================================================
+
+sellSignal =
+     ratio < sellThreshold and
+     overbought and
+     bearMomentum
+
+// =====================================================
+// PLOTS
+// =====================================================
+
+plot(ratio, title="VIX Ratio", color=color.blue, linewidth=2)
+
+hline(buyThreshold, "Buy Zone", color=color.green, linestyle=hline.style_dashed)
+hline(sellThreshold, "Sell Zone", color=color.red, linestyle=hline.style_dashed)
+
+// =====================================================
+// BACKGROUND COLORS
+// =====================================================
+
+bgcolor(buySignal ? color.new(color.green, 85) : na)
+bgcolor(sellSignal ? color.new(color.red, 85) : na)
+
+// =====================================================
+// WATERMARK
+// =====================================================
+
+wmSize = switch watermarkSize
+    "tiny"  => size.tiny
+    "small" => size.small
+    "normal"=> size.normal
+    "large" => size.large
+    "huge"  => size.huge
+    => size.huge
+
+if showWatermark and barstate.islast
+    var label wmLabel = label.new(bar_index, ratio, watermarkText, 
+         color=color.new(color.black, 100), 
+         textcolor=watermarkColor, 
+         style=label.style_none, 
+         size=wmSize,
+         textalign=text.align_center)
+    label.set_xy(wmLabel, bar_index, ratio)
+    label.set_text(wmLabel, watermarkText)
+
+// =====================================================
+// BUY / SELL LABELS
+// =====================================================
+
+if showLabels and buySignal
+    label.new(
+         bar_index,
+         ratio,
+         "BUY",
+         style=label.style_label_up,
+         color=color.green,
+         textcolor=color.white,
+         size=size.small)
+
+if showLabels and sellSignal
+    label.new(
+         bar_index,
+         ratio,
+         "SELL",
+         style=label.style_label_down,
+         color=color.red,
+         textcolor=color.white,
+         size=size.small)
+
+// =====================================================
+// ALERTS
+// =====================================================
+
+alertcondition(
+     buySignal,
+     title="BUY ALERT",
+     message="Long Term BUY Signal")
+
+alertcondition(
+     sellSignal,
+     title="SELL ALERT",
+     message="Long Term SELL Signal")
