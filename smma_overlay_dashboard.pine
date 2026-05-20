@@ -43,10 +43,12 @@ rsiOverbought = input.int(72, "SELL: RSI must be ABOVE", minval=50, maxval=95, g
 rsiDcaLow     = input.int(40, "DCA: RSI lower bound",    minval=10, maxval=50, group="Signals: RSI Thresholds")
 rsiDcaHigh    = input.int(50, "DCA: RSI upper bound",    minval=40, maxval=70, group="Signals: RSI Thresholds")
 
-// ── DCA Settings (NEW) ──
+// ── DCA Settings ──
 dcaLookback = input.int(60,    "DCA lookback bars (recent high)", minval=5,            group="Signals: DCA", tooltip="How many bars back to look for the recent high.")
 dcaDropPct  = input.float(12.0, "DCA: minimum percent drop from high", minval=1.0, step=0.5, group="Signals: DCA", tooltip="Minimum pullback from recent high. Higher = fewer DCA signals.")
-dcaCooldown = input.int(14,    "DCA cooldown (bars between DCA signals)", minval=1,    group="Signals: DCA", tooltip="Higher = DCA signals appear less often.")
+
+// ── Signal Cooldown (applies to ALL signals equally) ──
+signalCooldown = input.int(30, "Cooldown bars between same-type signals", minval=1, group="Signals: Cooldown", tooltip="Minimum 30 bars (days on 1D) between BUY-BUY, SELL-SELL, or DCA-DCA to avoid clustering.")
 
 // ── Signal Style (NEW) ──
 buyColor   = input.color(color.new(color.green, 0), "BUY label color",  group="Signals: Style")
@@ -116,21 +118,23 @@ isAllowedTF  = only1D ? timeframe.isdaily : true
 distFromMa   = (close - maValue) / maValue * 100.0
 recentHigh   = ta.highest(high, dcaLookback)
 dropFromHigh = (recentHigh - close) / recentHigh * 100.0
-maRising     = maValue > maValue[5]
 
 // Raw conditions
-buyRaw  = isAllowedTF and (distFromMa <= -buyDistPct) and (rsiVal <= rsiOversold)
-sellRaw = isAllowedTF and (distFromMa >=  sellDistPct) and (rsiVal >= rsiOverbought)
-dcaRaw  = isAllowedTF and (dropFromHigh >= dcaDropPct) and (rsiVal >= rsiDcaLow) and (rsiVal <= rsiDcaHigh) and maRising and (not buyRaw)
+// BUY: only BELOW the MA (price must be under SMMA200)
+buyRaw  = isAllowedTF and (close < maValue) and (distFromMa <= -buyDistPct) and (rsiVal <= rsiOversold)
+// SELL: only ABOVE the MA (price must be over SMMA200)
+sellRaw = isAllowedTF and (close > maValue) and (distFromMa >= sellDistPct) and (rsiVal >= rsiOverbought)
+// DCA: only BELOW the MA (price must be under SMMA200)
+dcaRaw  = isAllowedTF and (close < maValue) and (dropFromHigh >= dcaDropPct) and (rsiVal >= rsiDcaLow) and (rsiVal <= rsiDcaHigh) and (not buyRaw)
 
-// Cooldown / debounce so we do not paint a label on every consecutive bar
+// Cooldown: 30 bars minimum between same-type signals (avoids clustering)
 var int lastBuyBar  = na
 var int lastSellBar = na
 var int lastDcaBar  = na
 
-buySignal  = buyRaw  and (na(lastBuyBar)  or (bar_index - lastBuyBar)  >= 5)
-sellSignal = sellRaw and (na(lastSellBar) or (bar_index - lastSellBar) >= 5)
-dcaSignal  = dcaRaw  and (na(lastDcaBar)  or (bar_index - lastDcaBar)  >= dcaCooldown)
+buySignal  = buyRaw  and (na(lastBuyBar)  or (bar_index - lastBuyBar)  >= signalCooldown)
+sellSignal = sellRaw and (na(lastSellBar) or (bar_index - lastSellBar) >= signalCooldown)
+dcaSignal  = dcaRaw  and (na(lastDcaBar)  or (bar_index - lastDcaBar)  >= signalCooldown)
 
 if buySignal
     lastBuyBar := bar_index
