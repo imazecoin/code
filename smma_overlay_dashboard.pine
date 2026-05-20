@@ -1,0 +1,218 @@
+//@version=5
+indicator("SMMA Overlay with Fill", overlay=true)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// INPUTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// ── Moving Average Settings ──
+maLength      = input.int(200, "MA Length", minval=1, group="Moving Average")
+maType        = input.string("SMMA", "MA Type", options=["SMA", "EMA", "SMMA", "WMA", "HMA", "VWMA"], group="Moving Average")
+maLineColor   = input.color(color.new(#00d4ff, 0), "MA Line Color", group="Moving Average")
+maLineWidth   = input.int(2, "MA Line Width", minval=1, maxval=4, group="Moving Average")
+
+// ── Background Fill Settings ──
+fillAbove     = input.color(color.new(#00d4ff, 85), "Fill Above MA (Bullish)", group="Background Fill")
+fillBelow     = input.color(color.new(#ff4757, 85), "Fill Below MA (Bearish)", group="Background Fill")
+showFill      = input.bool(true, "Show Background Fill", group="Background Fill")
+
+// ── Dashboard Settings ──
+showDashboard = input.bool(true, "Show Dashboard", group="Dashboard")
+dashPosition  = input.string("Middle Left", "Dashboard Position", options=["Top Right", "Top Left", "Middle Left", "Bottom Right", "Bottom Left"], group="Dashboard")
+dashTextSize  = input.string("small", "Dashboard Text Size", options=["tiny", "small", "normal", "large"], group="Dashboard")
+
+// ── Watermark Settings ──
+showWatermark = input.bool(true, "Show Watermark", group="Watermark")
+watermarkText = input.string("IMAZECOIN", "Watermark Text", group="Watermark")
+watermarkColor= input.color(color.new(color.white, 90), "Watermark Color", group="Watermark")
+watermarkSize = input.string("large", "Watermark Size", options=["tiny", "small", "normal", "large", "huge"], group="Watermark")
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MOVING AVERAGE CALCULATION
+// ══════════════════════════════════════════════════════════════════════════════
+
+maValue = switch maType
+    "SMA"  => ta.sma(close, maLength)
+    "EMA"  => ta.ema(close, maLength)
+    "SMMA" => ta.rma(close, maLength)
+    "WMA"  => ta.wma(close, maLength)
+    "HMA"  => ta.hma(close, maLength)
+    "VWMA" => ta.vwma(close, maLength)
+    => ta.rma(close, maLength)
+
+// ── Plot MA Line ──
+maPlot = plot(maValue, "MA Line", color=maLineColor, linewidth=maLineWidth)
+
+// ── Background Fill ──
+fillColor = close > maValue ? fillAbove : fillBelow
+p1 = plot(showFill ? close : na, "Close for Fill", color=na, editable=false)
+fill(p1, maPlot, color=fillColor, title="MA Fill")
+
+// ══════════════════════════════════════════════════════════════════════════════
+// INDICATORS FOR DASHBOARD
+// ══════════════════════════════════════════════════════════════════════════════
+
+vwapV  = ta.vwap(hlc3)
+rsiVal = ta.rsi(close, 14)
+[m, s, _] = ta.macd(close, 12, 26, 9)
+volAvg = ta.sma(volume, 20)
+
+// ── Scores ──
+float bScore = 0
+bScore += (close > maValue ? 1 : 0)
+bScore += (close > vwapV   ? 1 : 0)
+bScore += (rsiVal > 50     ? 1 : 0)
+bScore += (m > s           ? 1 : 0)
+bScore += (volume > volAvg and close > open ? 1 : 0)
+float bullPct = math.round((bScore / 5) * 100)
+
+float rScore = 0
+rScore += (close < maValue ? 1 : 0)
+rScore += (close < vwapV   ? 1 : 0)
+rScore += (rsiVal < 50     ? 1 : 0)
+rScore += (m < s           ? 1 : 0)
+rScore += (volume > volAvg and close < open ? 1 : 0)
+float bearPct = math.round((rScore / 5) * 100)
+
+// ── Market Bias ──
+biasDiff = bullPct - bearPct
+string biasText = biasDiff >= 60 ? "STRONG BULL" : biasDiff >= 20 ? "MILD BULL" : biasDiff <= -60 ? "STRONG BEAR" : biasDiff <= -20 ? "MILD BEAR" : "NEUTRAL"
+color  biasCol  = str.contains(biasText, "BULL") ? color.green : str.contains(biasText, "BEAR") ? color.red : color.gray
+
+// ══════════════════════════════════════════════════════════════════════════════
+// WATERMARK
+// ══════════════════════════════════════════════════════════════════════════════
+
+wmSize = switch watermarkSize
+    "tiny"   => size.tiny
+    "small"  => size.small
+    "normal" => size.normal
+    "large"  => size.large
+    "huge"   => size.huge
+    => size.large
+
+if showWatermark and barstate.islast
+    var label wmLabel = label.new(bar_index, high, watermarkText,
+         color=color.new(color.black, 100),
+         textcolor=watermarkColor,
+         style=label.style_none,
+         size=wmSize,
+         textalign=text.align_center)
+    label.set_xy(wmLabel, bar_index, high)
+    label.set_text(wmLabel, watermarkText)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════════════════════════════
+
+dashPos = switch dashPosition
+    "Top Right"    => position.top_right
+    "Top Left"     => position.top_left
+    "Middle Left"  => position.middle_left
+    "Bottom Right" => position.bottom_right
+    "Bottom Left"  => position.bottom_left
+    => position.middle_left
+
+txtSize = switch dashTextSize
+    "tiny"   => size.tiny
+    "small"  => size.small
+    "normal" => size.normal
+    "large"  => size.large
+    => size.small
+
+if showDashboard and barstate.islast
+    dash = table.new(dashPos, 2, 9,
+         bgcolor=color.new(color.black, 20),
+         border_width=1,
+         border_color=color.new(color.gray, 50))
+
+    // ── Row 0: BULL SCORE ──
+    table.cell(dash, 0, 0, "BULL SCORE",
+         text_color=color.white, bgcolor=color.green,
+         text_size=txtSize, text_halign=text.align_left)
+    table.cell(dash, 1, 0, str.tostring(bullPct) + "%",
+         text_color=color.white, bgcolor=color.green,
+         text_size=txtSize, text_halign=text.align_right)
+
+    // ── Row 1: BEAR SCORE ──
+    table.cell(dash, 0, 1, "BEAR SCORE",
+         text_color=color.white, bgcolor=color.red,
+         text_size=txtSize, text_halign=text.align_left)
+    table.cell(dash, 1, 1, str.tostring(bearPct) + "%",
+         text_color=color.white, bgcolor=color.red,
+         text_size=txtSize, text_halign=text.align_right)
+
+    // ── Row 2: MARKET BIAS ──
+    table.cell(dash, 0, 2, "MARKET BIAS",
+         text_color=color.white, bgcolor=color.black,
+         text_size=txtSize, text_halign=text.align_left)
+    table.cell(dash, 1, 2, biasText,
+         text_color=color.white, bgcolor=biasCol,
+         text_size=txtSize, text_halign=text.align_right)
+
+    // ── Row 3: Price / SMMA ──
+    aboveBelow3 = close > maValue ? "ABOVE" : "BELOW"
+    col3        = close > maValue ? color.green : color.red
+    table.cell(dash, 0, 3, "Price/" + maType + str.tostring(maLength),
+         text_color=color.white, bgcolor=color.new(color.black, 60),
+         text_size=txtSize, text_halign=text.align_left)
+    table.cell(dash, 1, 3, aboveBelow3 + (close > maValue ? " OK" : " !"),
+         text_color=col3, bgcolor=color.new(color.black, 60),
+         text_size=txtSize, text_halign=text.align_right)
+
+    // ── Row 4: Price / VWAP ──
+    aboveBelow4 = close > vwapV ? "ABOVE" : "BELOW"
+    col4        = close > vwapV ? color.green : color.red
+    table.cell(dash, 0, 4, "Price/VWAP",
+         text_color=color.white, bgcolor=color.new(color.black, 60),
+         text_size=txtSize, text_halign=text.align_left)
+    table.cell(dash, 1, 4, aboveBelow4 + (close > vwapV ? " OK" : " !"),
+         text_color=col4, bgcolor=color.new(color.black, 60),
+         text_size=txtSize, text_halign=text.align_right)
+
+    // ── Row 5: RSI ──
+    rsiCol = rsiVal >= 70 ? color.red : rsiVal <= 30 ? color.green : color.white
+    table.cell(dash, 0, 5, "RSI (14)",
+         text_color=color.white, bgcolor=color.new(color.black, 60),
+         text_size=txtSize, text_halign=text.align_left)
+    table.cell(dash, 1, 5, str.tostring(rsiVal, "#.#"),
+         text_color=rsiCol, bgcolor=color.new(color.black, 60),
+         text_size=txtSize, text_halign=text.align_right)
+
+    // ── Row 6: MACD Trend ──
+    macdText = m > s ? "BULL" : "BEAR"
+    macdCol  = m > s ? color.green : color.red
+    table.cell(dash, 0, 6, "MACD Trend",
+         text_color=color.white, bgcolor=color.new(color.black, 60),
+         text_size=txtSize, text_halign=text.align_left)
+    table.cell(dash, 1, 6, macdText + (m > s ? " OK" : " !"),
+         text_color=macdCol, bgcolor=color.new(color.black, 60),
+         text_size=txtSize, text_halign=text.align_right)
+
+    // ── Row 7: Volume ──
+    volText = volume > volAvg ? "HIGH" : "LOW"
+    volCol  = volume > volAvg ? color.green : color.gray
+    table.cell(dash, 0, 7, "Volume",
+         text_color=color.white, bgcolor=color.new(color.black, 60),
+         text_size=txtSize, text_halign=text.align_left)
+    table.cell(dash, 1, 7, volText,
+         text_color=volCol, bgcolor=color.new(color.black, 60),
+         text_size=txtSize, text_halign=text.align_right)
+
+    // ── Row 8: Trend Str ──
+    [_, _, adx] = ta.dmi(14, 14)
+    trendText = adx > 25 ? "STRONG" : "WEAK"
+    trendCol  = adx > 25 ? color.green : color.red
+    table.cell(dash, 0, 8, "Trend Str",
+         text_color=color.white, bgcolor=color.new(color.black, 60),
+         text_size=txtSize, text_halign=text.align_left)
+    table.cell(dash, 1, 8, trendText,
+         text_color=trendCol, bgcolor=color.new(color.black, 60),
+         text_size=txtSize, text_halign=text.align_right)
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ALERTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+alertcondition(ta.crossover(close, maValue),  "Price Cross Above MA", "Price crossed above MA")
+alertcondition(ta.crossunder(close, maValue), "Price Cross Below MA", "Price crossed below MA")
