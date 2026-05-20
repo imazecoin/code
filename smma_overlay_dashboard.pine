@@ -1,5 +1,5 @@
 //@version=5
-indicator("SMMA Overlay with Fill", overlay=true)
+indicator("SMMA Overlay with Fill + Long-Term Signals", shorttitle="SMMA + B/S/DCA", overlay=true, max_labels_count=500)
 
 // ══════════════════════════════════════════════════════════════════════════════
 // INPUTS
@@ -26,6 +26,34 @@ showWatermark = input.bool(true, "Show Watermark", group="Watermark")
 watermarkText = input.string("IMAZECOIN", "Watermark Text", group="Watermark")
 watermarkColor= input.color(color.new(color.white, 90), "Watermark Color", group="Watermark")
 watermarkSize = input.string("large", "Watermark Size", options=["tiny", "small", "normal", "large", "huge"], group="Watermark")
+
+// ── Signal Display Toggles (NEW) ──
+showBuy   = input.bool(true, "Show BUY signals",  group="Signals: Display")
+showSell  = input.bool(true, "Show SELL signals", group="Signals: Display")
+showDCA   = input.bool(true, "Show DCA signals",  group="Signals: Display")
+only1D    = input.bool(true, "Only show signals on 1D timeframe", group="Signals: Display")
+
+// ── Signal Distance from MA (NEW) ──
+buyDistPct  = input.float(15.0, "BUY: minimum percent BELOW MA",  minval=0.0, step=0.5, group="Signals: Distance from MA", tooltip="Increase for fewer (more extreme) BUY signals. Crypto: 25-35. Stocks/ETF: 10-15.")
+sellDistPct = input.float(25.0, "SELL: minimum percent ABOVE MA", minval=0.0, step=0.5, group="Signals: Distance from MA", tooltip="Increase for fewer (more extreme) SELL signals. Crypto: 40-60. Stocks/ETF: 20-30.")
+
+// ── Signal RSI Thresholds (NEW, reuse RSI 14 from dashboard) ──
+rsiOversold   = input.int(30, "BUY: RSI must be BELOW",  minval=5,  maxval=50, group="Signals: RSI Thresholds", tooltip="Lower = fewer BUY signals (more extreme oversold required).")
+rsiOverbought = input.int(72, "SELL: RSI must be ABOVE", minval=50, maxval=95, group="Signals: RSI Thresholds", tooltip="Higher = fewer SELL signals (more extreme overbought required).")
+rsiDcaLow     = input.int(40, "DCA: RSI lower bound",    minval=10, maxval=50, group="Signals: RSI Thresholds")
+rsiDcaHigh    = input.int(50, "DCA: RSI upper bound",    minval=40, maxval=70, group="Signals: RSI Thresholds")
+
+// ── DCA Settings (NEW) ──
+dcaLookback = input.int(60,    "DCA lookback bars (recent high)", minval=5,            group="Signals: DCA", tooltip="How many bars back to look for the recent high.")
+dcaDropPct  = input.float(12.0, "DCA: minimum percent drop from high", minval=1.0, step=0.5, group="Signals: DCA", tooltip="Minimum pullback from recent high. Higher = fewer DCA signals.")
+dcaCooldown = input.int(14,    "DCA cooldown (bars between DCA signals)", minval=1,    group="Signals: DCA", tooltip="Higher = DCA signals appear less often.")
+
+// ── Signal Style (NEW) ──
+buyColor   = input.color(color.new(color.green, 0), "BUY label color",  group="Signals: Style")
+sellColor  = input.color(color.new(color.red, 0),   "SELL label color", group="Signals: Style")
+dcaColor   = input.color(color.new(color.blue, 0),  "DCA label color",  group="Signals: Style")
+buyTxtSize = input.string("normal", "BUY/SELL label size", options=["tiny", "small", "normal", "large"], group="Signals: Style")
+dcaTxtSize = input.string("small",  "DCA label size",      options=["tiny", "small", "normal", "large"], group="Signals: Style")
 
 // ══════════════════════════════════════════════════════════════════════════════
 // MOVING AVERAGE CALCULATION
@@ -78,6 +106,58 @@ float bearPct = math.round((rScore / 5) * 100)
 biasDiff = bullPct - bearPct
 string biasText = biasDiff >= 60 ? "STRONG BULL" : biasDiff >= 20 ? "MILD BULL" : biasDiff <= -60 ? "STRONG BEAR" : biasDiff <= -20 ? "MILD BEAR" : "NEUTRAL"
 color  biasCol  = str.contains(biasText, "BULL") ? color.green : str.contains(biasText, "BEAR") ? color.red : color.gray
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LONG-TERM BUY / SELL / DCA SIGNALS  (NEW SECTION)
+// Uses the user's configurable MA (maValue) and RSI(14) (rsiVal) above
+// ══════════════════════════════════════════════════════════════════════════════
+
+isAllowedTF  = only1D ? timeframe.isdaily : true
+distFromMa   = (close - maValue) / maValue * 100.0
+recentHigh   = ta.highest(high, dcaLookback)
+dropFromHigh = (recentHigh - close) / recentHigh * 100.0
+maRising     = maValue > maValue[5]
+
+// Raw conditions
+buyRaw  = isAllowedTF and (distFromMa <= -buyDistPct) and (rsiVal <= rsiOversold)
+sellRaw = isAllowedTF and (distFromMa >=  sellDistPct) and (rsiVal >= rsiOverbought)
+dcaRaw  = isAllowedTF and (dropFromHigh >= dcaDropPct) and (rsiVal >= rsiDcaLow) and (rsiVal <= rsiDcaHigh) and maRising and (not buyRaw)
+
+// Cooldown / debounce so we do not paint a label on every consecutive bar
+var int lastBuyBar  = na
+var int lastSellBar = na
+var int lastDcaBar  = na
+
+buySignal  = buyRaw  and (na(lastBuyBar)  or (bar_index - lastBuyBar)  >= 5)
+sellSignal = sellRaw and (na(lastSellBar) or (bar_index - lastSellBar) >= 5)
+dcaSignal  = dcaRaw  and (na(lastDcaBar)  or (bar_index - lastDcaBar)  >= dcaCooldown)
+
+if buySignal
+    lastBuyBar := bar_index
+if sellSignal
+    lastSellBar := bar_index
+if dcaSignal
+    lastDcaBar := bar_index
+
+// Convert label-size strings to size constants
+bsSize = switch buyTxtSize
+    "tiny"   => size.tiny
+    "small"  => size.small
+    "normal" => size.normal
+    "large"  => size.large
+    => size.normal
+
+dcSize = switch dcaTxtSize
+    "tiny"   => size.tiny
+    "small"  => size.small
+    "normal" => size.normal
+    "large"  => size.large
+    => size.small
+
+// Plot the signals as labels on the chart
+plotshape(showBuy  and buySignal,  title="BUY",  style=shape.labelup,   location=location.belowbar, color=buyColor,  text="BUY",  textcolor=color.white, size=bsSize)
+plotshape(showSell and sellSignal, title="SELL", style=shape.labeldown, location=location.abovebar, color=sellColor, text="SELL", textcolor=color.white, size=bsSize)
+plotshape(showDCA  and dcaSignal,  title="DCA",  style=shape.labelup,   location=location.belowbar, color=dcaColor,  text="DCA",  textcolor=color.white, size=dcSize)
 
 // ══════════════════════════════════════════════════════════════════════════════
 // WATERMARK
@@ -156,7 +236,7 @@ if showDashboard and barstate.islast
     table.cell(dash, 0, 3, "Price/" + maType + str.tostring(maLength),
          text_color=color.white, bgcolor=color.new(color.black, 60),
          text_size=txtSize, text_halign=text.align_left)
-    table.cell(dash, 1, 3, aboveBelow3 + (close > maValue ? " OK" : " !"),
+    table.cell(dash, 1, 3, aboveBelow3 + (close > maValue ? " ✅" : " ⚠️"),
          text_color=col3, bgcolor=color.new(color.black, 60),
          text_size=txtSize, text_halign=text.align_right)
 
@@ -166,7 +246,7 @@ if showDashboard and barstate.islast
     table.cell(dash, 0, 4, "Price/VWAP",
          text_color=color.white, bgcolor=color.new(color.black, 60),
          text_size=txtSize, text_halign=text.align_left)
-    table.cell(dash, 1, 4, aboveBelow4 + (close > vwapV ? " OK" : " !"),
+    table.cell(dash, 1, 4, aboveBelow4 + (close > vwapV ? " ✅" : " ⚠️"),
          text_color=col4, bgcolor=color.new(color.black, 60),
          text_size=txtSize, text_halign=text.align_right)
 
@@ -185,7 +265,7 @@ if showDashboard and barstate.islast
     table.cell(dash, 0, 6, "MACD Trend",
          text_color=color.white, bgcolor=color.new(color.black, 60),
          text_size=txtSize, text_halign=text.align_left)
-    table.cell(dash, 1, 6, macdText + (m > s ? " OK" : " !"),
+    table.cell(dash, 1, 6, macdText + (m > s ? " ✅" : " ⚠️"),
          text_color=macdCol, bgcolor=color.new(color.black, 60),
          text_size=txtSize, text_halign=text.align_right)
 
@@ -216,3 +296,8 @@ if showDashboard and barstate.islast
 
 alertcondition(ta.crossover(close, maValue),  "Price Cross Above MA", "Price crossed above MA")
 alertcondition(ta.crossunder(close, maValue), "Price Cross Below MA", "Price crossed below MA")
+
+// ── New signal alerts ──
+alertcondition(buySignal,  "BUY signal",  "Long-term BUY signal")
+alertcondition(sellSignal, "SELL signal", "Long-term SELL signal")
+alertcondition(dcaSignal,  "DCA signal",  "DCA opportunity")
