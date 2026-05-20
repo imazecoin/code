@@ -1,112 +1,50 @@
 //@version=5
-// =============================================================================
-//  Long-Term Buy / Sell / DCA Signals
-//  Author: Kiro (custom for long-term investor)
-//
-//  Purpose:
-//    Daily-only (1D) indicator that highlights long-term opportunities
-//    on Stocks, ETFs and Crypto:
-//      - BUY  : price is "deep value" (well below SMA200 and oversold RSI)
-//      - SELL : price is "expensive"  (well above SMA200 and overbought RSI)
-//      - DCA  : moderate pullback from recent high while trend is still
-//               constructive -> good moment to add a partial position
-//
-//  Notes:
-//    - Designed to be used ONLY on the Daily (1D) timeframe.
-//    - Each signal type can be toggled on/off from the settings.
-//    - All thresholds are configurable so you can tune sensitivity per
-//      asset (crypto usually needs wider ranges than ETFs).
-// =============================================================================
+// Long-Term Buy / Sell / DCA Signals - 1D only
+// For Stocks / ETFs / Crypto
 
-indicator("Long-Term Buy / Sell / DCA Signals",
-     shorttitle="LT B/S/DCA",
-     overlay=true,
-     max_labels_count=500)
+indicator("Long-Term Buy / Sell / DCA Signals", shorttitle="LT B/S/DCA", overlay=true, max_labels_count=500)
 
-// -----------------------------------------------------------------------------
-// 1. Display toggles
-// -----------------------------------------------------------------------------
-showBuy  = input.bool(true,  "Show BUY signals",  group="Display")
-showSell = input.bool(true,  "Show SELL signals", group="Display")
-showDCA  = input.bool(true,  "Show DCA signals",  group="Display")
-showSMA  = input.bool(true,  "Show SMA200 line",  group="Display")
-showInfo = input.bool(true,  "Show info panel",   group="Display")
+// ----- Display toggles -----
+showBuy  = input.bool(true, "Show BUY signals",  group="Display")
+showSell = input.bool(true, "Show SELL signals", group="Display")
+showDCA  = input.bool(true, "Show DCA signals",  group="Display")
+showSMA  = input.bool(true, "Show SMA200 line",  group="Display")
+showInfo = input.bool(true, "Show info panel",   group="Display")
 
-// -----------------------------------------------------------------------------
-// 2. Trend (long-term moving average) settings
-// -----------------------------------------------------------------------------
-smaLength    = input.int(200, "Long-term SMA length", minval=20,
-     group="Trend (SMA)")
-buyDistPct   = input.float(10.0, "BUY: minimum % BELOW SMA",
-     minval=0.0, step=0.5, group="Trend (SMA)",
-     tooltip="How much below the SMA200 the price must be to qualify as BUY zone.")
-sellDistPct  = input.float(20.0, "SELL: minimum % ABOVE SMA",
-     minval=0.0, step=0.5, group="Trend (SMA)",
-     tooltip="How much above the SMA200 the price must be to qualify as SELL zone.")
+// ----- Trend (SMA) settings -----
+smaLength   = input.int(200,  "Long-term SMA length",        minval=20,  group="Trend (SMA)")
+buyDistPct  = input.float(10.0, "BUY: minimum percent BELOW SMA",  minval=0.0, step=0.5, group="Trend (SMA)")
+sellDistPct = input.float(20.0, "SELL: minimum percent ABOVE SMA", minval=0.0, step=0.5, group="Trend (SMA)")
 
-// -----------------------------------------------------------------------------
-// 3. Momentum (RSI) settings
-// -----------------------------------------------------------------------------
-rsiLength     = input.int(14, "RSI length", minval=2, group="Momentum (RSI)")
-rsiOversold   = input.int(32, "BUY  : RSI must be BELOW",
-     minval=5,  maxval=50, group="Momentum (RSI)")
-rsiOverbought = input.int(70, "SELL : RSI must be ABOVE",
-     minval=50, maxval=95, group="Momentum (RSI)")
-rsiDcaLow     = input.int(38, "DCA  : RSI lower bound",
-     minval=10, maxval=50, group="Momentum (RSI)")
-rsiDcaHigh    = input.int(55, "DCA  : RSI upper bound",
-     minval=40, maxval=70, group="Momentum (RSI)")
+// ----- RSI settings -----
+rsiLength     = input.int(14, "RSI length",                  minval=2,             group="Momentum (RSI)")
+rsiOversold   = input.int(32, "BUY: RSI must be BELOW",      minval=5,  maxval=50, group="Momentum (RSI)")
+rsiOverbought = input.int(70, "SELL: RSI must be ABOVE",     minval=50, maxval=95, group="Momentum (RSI)")
+rsiDcaLow     = input.int(38, "DCA: RSI lower bound",        minval=10, maxval=50, group="Momentum (RSI)")
+rsiDcaHigh    = input.int(55, "DCA: RSI upper bound",        minval=40, maxval=70, group="Momentum (RSI)")
 
-// -----------------------------------------------------------------------------
-// 4. DCA settings
-// -----------------------------------------------------------------------------
-dcaLookback = input.int(40,  "DCA lookback (bars for recent high)",
-     minval=5, group="DCA")
-dcaDropPct  = input.float(8.0, "DCA: minimum % drop from recent high",
-     minval=1.0, step=0.5, group="DCA")
-dcaCooldown = input.int(7,   "DCA cooldown (bars between DCA signals)",
-     minval=1, group="DCA",
-     tooltip="Avoid spamming DCA labels every single day during a slow drop.")
+// ----- DCA settings -----
+dcaLookback = input.int(40,    "DCA lookback bars (recent high)",   minval=5,            group="DCA")
+dcaDropPct  = input.float(8.0, "DCA: minimum percent drop from high", minval=1.0, step=0.5, group="DCA")
+dcaCooldown = input.int(7,     "DCA cooldown (bars)",               minval=1,            group="DCA")
 
-// -----------------------------------------------------------------------------
-// 5. Timeframe guard - this indicator is meant for 1D only
-// -----------------------------------------------------------------------------
+// ----- Timeframe guard -----
 isDaily = timeframe.isdaily
 
-// -----------------------------------------------------------------------------
-// 6. Core calculations
-// -----------------------------------------------------------------------------
-sma         = ta.sma(close, smaLength)
-rsi         = ta.rsi(close, rsiLength)
-recentHigh  = ta.highest(high, dcaLookback)
+// ----- Calculations -----
+sma          = ta.sma(close, smaLength)
+rsi          = ta.rsi(close, rsiLength)
+recentHigh   = ta.highest(high, dcaLookback)
+distFromSma  = (close - sma) / sma * 100.0
+dropFromHigh = (recentHigh - close) / recentHigh * 100.0
+smaRising    = sma > sma[5]
 
-distFromSma   = (close - sma) / sma * 100.0          // % distance from SMA200
-dropFromHigh  = (recentHigh - close) / recentHigh * 100.0   // % below recent high
-
-// Trend regime: SMA rising = healthy long-term uptrend
-smaRising = sma > sma[5]
-
-// -----------------------------------------------------------------------------
-// 7. Raw signal conditions
-// -----------------------------------------------------------------------------
-// BUY  -> deep value: well below SMA200 AND oversold RSI
+// ----- Raw conditions -----
 buyRaw  = isDaily and (distFromSma <= -buyDistPct) and (rsi <= rsiOversold)
-
-// SELL -> expensive: well above SMA200 AND overbought RSI
 sellRaw = isDaily and (distFromSma >=  sellDistPct) and (rsi >= rsiOverbought)
+dcaRaw  = isDaily and (dropFromHigh >= dcaDropPct) and (rsi >= rsiDcaLow) and (rsi <= rsiDcaHigh) and smaRising and (not buyRaw)
 
-// DCA  -> moderate pullback from recent high, RSI in mild zone,
-//         trend still constructive (SMA rising) AND we are NOT already in
-//         a deep BUY zone (so DCA does not overlap with BUY)
-dcaRaw  = isDaily
-     and (dropFromHigh >= dcaDropPct)
-     and (rsi >= rsiDcaLow and rsi <= rsiDcaHigh)
-     and smaRising
-     and not buyRaw
-
-// -----------------------------------------------------------------------------
-// 8. Debounce / cooldown so we don't paint a label on every bar
-// -----------------------------------------------------------------------------
+// ----- Cooldown / debounce -----
 var int lastBuyBar  = na
 var int lastSellBar = na
 var int lastDcaBar  = na
@@ -122,95 +60,40 @@ if sellSignal
 if dcaSignal
     lastDcaBar := bar_index
 
-// -----------------------------------------------------------------------------
-// 9. Plotting
-// -----------------------------------------------------------------------------
-plot(showSMA ? sma : na, "SMA200",
-     color=color.new(color.orange, 0), linewidth=2)
+// ----- Plotting -----
+plot(showSMA ? sma : na, "SMA200", color=color.new(color.orange, 0), linewidth=2)
 
-plotshape(showBuy and buySignal,
-     title="BUY",
-     style=shape.labelup,
-     location=location.belowbar,
-     color=color.new(color.green, 0),
-     text="BUY",
-     textcolor=color.white,
-     size=size.normal)
+plotshape(showBuy  and buySignal,  title="BUY",  style=shape.labelup,   location=location.belowbar, color=color.new(color.green, 0), text="BUY",  textcolor=color.white, size=size.normal)
+plotshape(showSell and sellSignal, title="SELL", style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 0),   text="SELL", textcolor=color.white, size=size.normal)
+plotshape(showDCA  and dcaSignal,  title="DCA",  style=shape.labelup,   location=location.belowbar, color=color.new(color.blue, 0),  text="DCA",  textcolor=color.white, size=size.small)
 
-plotshape(showSell and sellSignal,
-     title="SELL",
-     style=shape.labeldown,
-     location=location.abovebar,
-     color=color.new(color.red, 0),
-     text="SELL",
-     textcolor=color.white,
-     size=size.normal)
-
-plotshape(showDCA and dcaSignal,
-     title="DCA",
-     style=shape.labelup,
-     location=location.belowbar,
-     color=color.new(color.blue, 0),
-     text="DCA",
-     textcolor=color.white,
-     size=size.small)
-
-// Background tint when we are in a strong BUY / SELL zone (subtle)
 bgcolor(showBuy  and buyRaw  ? color.new(color.green, 90) : na, title="BUY zone")
 bgcolor(showSell and sellRaw ? color.new(color.red,   90) : na, title="SELL zone")
 
-// -----------------------------------------------------------------------------
-// 10. Alerts (so you can be notified by TradingView)
-// -----------------------------------------------------------------------------
-alertcondition(buySignal,  title="BUY signal",
-     message="Long-term BUY signal on {{ticker}} ({{interval}}) at {{close}}")
-alertcondition(sellSignal, title="SELL signal",
-     message="Long-term SELL signal on {{ticker}} ({{interval}}) at {{close}}")
-alertcondition(dcaSignal,  title="DCA signal",
-     message="DCA opportunity on {{ticker}} ({{interval}}) at {{close}}")
+// ----- Alerts -----
+alertcondition(buySignal,  title="BUY signal",  message="Long-term BUY signal")
+alertcondition(sellSignal, title="SELL signal", message="Long-term SELL signal")
+alertcondition(dcaSignal,  title="DCA signal",  message="DCA opportunity")
 
-// -----------------------------------------------------------------------------
-// 11. Info panel + timeframe warning
-// -----------------------------------------------------------------------------
-if barstate.islast
-    var table info = table.new(position.top_right, 2, 6,
-         border_width=1, frame_color=color.gray, frame_width=1)
-    if showInfo
-        table.cell(info, 0, 0, "Timeframe", bgcolor=color.new(color.gray, 70),
-             text_color=color.white)
-        table.cell(info, 1, 0, isDaily ? "1D OK" : "NOT 1D",
-             bgcolor=isDaily ? color.new(color.green, 60) : color.new(color.red, 30),
-             text_color=color.white)
+// ----- Info panel + timeframe warning -----
+var table info = table.new(position.top_right, 2, 5, border_width=1, frame_color=color.gray, frame_width=1)
 
-        table.cell(info, 0, 1, "Price vs SMA200",
-             bgcolor=color.new(color.gray, 70), text_color=color.white)
-        table.cell(info, 1, 1, str.tostring(distFromSma, "#.##") + " %",
-             bgcolor=color.new(color.black, 70), text_color=color.white)
+if barstate.islast and showInfo
+    tfTxt  = isDaily ? "1D OK" : "NOT 1D"
+    tfCol  = isDaily ? color.new(color.green, 60) : color.new(color.red, 30)
+    zoneTxt = buyRaw ? "BUY zone" : sellRaw ? "SELL zone" : dcaRaw ? "DCA zone" : "Neutral"
+    zoneCol = buyRaw ? color.new(color.green, 30) : sellRaw ? color.new(color.red, 30) : dcaRaw ? color.new(color.blue, 30) : color.new(color.gray, 50)
 
-        table.cell(info, 0, 2, "RSI(" + str.tostring(rsiLength) + ")",
-             bgcolor=color.new(color.gray, 70), text_color=color.white)
-        table.cell(info, 1, 2, str.tostring(rsi, "#.##"),
-             bgcolor=color.new(color.black, 70), text_color=color.white)
+    table.cell(info, 0, 0, "Timeframe",       bgcolor=color.new(color.gray, 70),  text_color=color.white)
+    table.cell(info, 1, 0, tfTxt,             bgcolor=tfCol,                      text_color=color.white)
+    table.cell(info, 0, 1, "Price vs SMA200", bgcolor=color.new(color.gray, 70),  text_color=color.white)
+    table.cell(info, 1, 1, str.tostring(distFromSma, "#.##") + " %", bgcolor=color.new(color.black, 70), text_color=color.white)
+    table.cell(info, 0, 2, "RSI",             bgcolor=color.new(color.gray, 70),  text_color=color.white)
+    table.cell(info, 1, 2, str.tostring(rsi, "#.##"),                bgcolor=color.new(color.black, 70), text_color=color.white)
+    table.cell(info, 0, 3, "Drop from high",  bgcolor=color.new(color.gray, 70),  text_color=color.white)
+    table.cell(info, 1, 3, str.tostring(dropFromHigh, "#.##") + " %",bgcolor=color.new(color.black, 70), text_color=color.white)
+    table.cell(info, 0, 4, "Current zone",    bgcolor=color.new(color.gray, 70),  text_color=color.white)
+    table.cell(info, 1, 4, zoneTxt,           bgcolor=zoneCol,                    text_color=color.white)
 
-        table.cell(info, 0, 3, "Drop from " + str.tostring(dcaLookback) + "d high",
-             bgcolor=color.new(color.gray, 70), text_color=color.white)
-        table.cell(info, 1, 3, str.tostring(dropFromHigh, "#.##") + " %",
-             bgcolor=color.new(color.black, 70), text_color=color.white)
-
-        zoneTxt = buyRaw ? "BUY zone" : sellRaw ? "SELL zone" :
-             dcaRaw ? "DCA zone" : "Neutral"
-        zoneCol = buyRaw ? color.new(color.green, 30) :
-             sellRaw ? color.new(color.red, 30) :
-             dcaRaw ? color.new(color.blue, 30) : color.new(color.gray, 50)
-        table.cell(info, 0, 4, "Current zone",
-             bgcolor=color.new(color.gray, 70), text_color=color.white)
-        table.cell(info, 1, 4, zoneTxt, bgcolor=zoneCol, text_color=color.white)
-
-    // Timeframe warning label
-    if not isDaily
-        label.new(bar_index, high,
-             text="This indicator is designed for the 1D timeframe.\nSwitch chart to Daily.",
-             color=color.new(color.red, 10),
-             textcolor=color.white,
-             style=label.style_label_down,
-             size=size.normal)
+if barstate.islast and (not isDaily)
+    label.new(bar_index, high, text="Use 1D timeframe", color=color.new(color.red, 10), textcolor=color.white, style=label.style_label_down, size=size.normal)
