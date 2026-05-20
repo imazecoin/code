@@ -5,15 +5,29 @@ indicator("Imazecoin Long Term Strategy PRO", overlay=false)
 // INPUTS
 // =====================================================
 
-length        = input.int(21, minval=5, title="VIX Lookback")
-rsiLength     = input.int(14, title="RSI Length")
-emaLength     = input.int(200, title="Trend EMA")
-atrLength     = input.int(14, title="ATR Length")
+length        = input.int(21, minval=5, title="VIX Lookback",       group="Core")
+rsiLength     = input.int(14, title="RSI Length",                   group="Core")
+emaLength     = input.int(200, title="Trend EMA",                   group="Core")
+atrLength     = input.int(14, title="ATR Length",                   group="Core")
 
-buyThreshold  = input.float(18.0, title="Buy Threshold")
-sellThreshold = input.float(6.0, title="Sell Threshold")
+buyThreshold  = input.float(18.0, title="Buy Threshold (high ratio)", group="Thresholds", tooltip="Higher = fewer BUY signals. Crypto: 25-30. Stocks/ETF: 18-22.")
+sellThreshold = input.float(6.0,  title="Sell Threshold (low ratio)", group="Thresholds", tooltip="Lower = fewer SELL signals.")
+rsiOversold   = input.int(40, title="RSI oversold (BUY filter)",      minval=10, maxval=60, group="Thresholds", tooltip="Lower = fewer / higher quality BUY signals. Default 40 (was 45 - too loose).")
+rsiOverbought = input.int(70, title="RSI overbought (SELL filter)",   minval=50, maxval=90, group="Thresholds")
 
-showLabels    = input.bool(true, title="Show Buy/Sell Labels")
+// -- Signal Display & Filters --
+showBuy       = input.bool(true,  "Show BUY labels",  group="Signals")
+showSell      = input.bool(true,  "Show SELL labels", group="Signals")
+only1D        = input.bool(true,  "Only on 1D timeframe", group="Signals")
+useVolFilter  = input.bool(true,  "Require high volatility (ATR > avg) for BUY", group="Signals", tooltip="When ON, BUY only fires during real panic (ATR spike). Increases signal quality.")
+momentumBars  = input.int(2, "Momentum confirmation bars", minval=1, maxval=5, group="Signals", tooltip="Number of consecutive bars in the right direction. 1 = original behavior, 2 = recommended.")
+cooldownBars  = input.int(7, "Cooldown bars between same-type signals", minval=1, group="Signals", tooltip="Higher = fewer clustered labels.")
+
+// -- Visual Style --
+colorBuyZone    = input.color(color.new(color.green, 0), "BUY zone color (line + bg)",  group="Style")
+colorSellZone   = input.color(color.new(color.red, 0),   "SELL zone color (line + bg)", group="Style")
+colorNeutral    = input.color(color.new(#3a8bff, 0),     "Neutral line color",          group="Style")
+showZoneShading = input.bool(true, "Shade BUY/SELL zones in oscillator pane", group="Style")
 
 // -- Watermark Settings --
 showWatermark = input.bool(true, "Show Watermark", group="Watermark")
@@ -22,126 +36,125 @@ watermarkColor= input.color(color.new(color.white, 85), "Watermark Color", group
 watermarkSize = input.string("huge", "Watermark Size", options=["tiny", "small", "normal", "large", "huge"], group="Watermark")
 
 // =====================================================
-// CORE VIX STYLE CALCULATION
+// CORE VIX-STYLE CALCULATION
 // =====================================================
 
 highest_close = ta.highest(close, length)
 ratio = 100 * (highest_close - low) / highest_close
 
 // =====================================================
-// TREND FILTER
+// FILTERS (Trend / RSI / Volatility)
 // =====================================================
 
 ema200 = ta.ema(close, emaLength)
+rsi    = ta.rsi(close, rsiLength)
+atr    = ta.atr(atrLength)
+atrMA  = ta.sma(atr, atrLength)
 
-// Soft trend filter:
-// Allows buys below EMA200 only on extreme panic
-softTrend = close > ema200 or ratio > 25
-
-// =====================================================
-// RSI FILTER
-// =====================================================
-
-rsi = ta.rsi(close, rsiLength)
-
-// Relaxed RSI for daily chart
-oversold = rsi < 45
-overbought = rsi > 70
-
-// =====================================================
-// ATR VOLATILITY FILTER
-// =====================================================
-
-atr = ta.atr(atrLength)
-atrMA = ta.sma(atr, atrLength)
-
+// Soft trend: allow buys below EMA200 only on extreme panic (ratio > 25)
+softTrend      = close > ema200 or ratio > 25
+oversold       = rsi < rsiOversold
+overbought     = rsi > rsiOverbought
 highVolatility = atr > atrMA
 
-// =====================================================
-// MOMENTUM CONFIRMATION
-// =====================================================
-
-bullMomentum = close > close[1]
-bearMomentum = close < close[1]
+// Stronger momentum: N consecutive bars in direction (configurable)
+bullMomentum = ta.rising(close,  momentumBars)
+bearMomentum = ta.falling(close, momentumBars)
 
 // =====================================================
-// BUY SIGNAL
+// TIMEFRAME GATE
 // =====================================================
 
-buySignal =
-     ratio > buyThreshold and
-     oversold and
-     softTrend and
-     bullMomentum
+isAllowedTF = only1D ? timeframe.isdaily : true
 
 // =====================================================
-// SELL SIGNAL
+// RAW SIGNALS
 // =====================================================
 
-sellSignal =
-     ratio < sellThreshold and
-     overbought and
-     bearMomentum
+buyRaw = isAllowedTF and ratio > buyThreshold and oversold and softTrend and bullMomentum and (not useVolFilter or highVolatility)
+sellRaw = isAllowedTF and ratio < sellThreshold and overbought and bearMomentum
+
+// =====================================================
+// COOLDOWN / DEBOUNCE (avoids stacked labels)
+// =====================================================
+
+var int lastBuyBar  = na
+var int lastSellBar = na
+
+buySignal  = buyRaw  and (na(lastBuyBar)  or (bar_index - lastBuyBar)  >= cooldownBars)
+sellSignal = sellRaw and (na(lastSellBar) or (bar_index - lastSellBar) >= cooldownBars)
+
+if buySignal
+    lastBuyBar := bar_index
+if sellSignal
+    lastSellBar := bar_index
 
 // =====================================================
 // PLOTS
 // =====================================================
 
-plot(ratio, title="VIX Ratio", color=color.blue, linewidth=2)
+// Color the ratio line by current zone
+ratioColor = ratio > buyThreshold ? colorBuyZone : ratio < sellThreshold ? colorSellZone : colorNeutral
+plot(ratio, title="VIX Ratio", color=ratioColor, linewidth=2)
 
-hline(buyThreshold, "Buy Zone", color=color.green, linestyle=hline.style_dashed)
-hline(sellThreshold, "Sell Zone", color=color.red, linestyle=hline.style_dashed)
+// Threshold lines
+buyLine  = hline(buyThreshold,  "Buy Zone",  color=color.new(color.green, 30), linestyle=hline.style_dashed)
+sellLine = hline(sellThreshold, "Sell Zone", color=color.new(color.red, 30),   linestyle=hline.style_dashed)
+hline(0, "Zero", color=color.new(color.gray, 70), linestyle=hline.style_dotted)
+
+// Optional zone shading inside the oscillator (subtle)
+topLine = hline(100, "Top",    color=na)
+botLine = hline(0,   "Bottom", color=na)
+fill(topLine, buyLine,  color=showZoneShading ? color.new(colorBuyZone,  92) : na, title="BUY zone shade")
+fill(botLine, sellLine, color=showZoneShading ? color.new(colorSellZone, 92) : na, title="SELL zone shade")
 
 // =====================================================
-// BACKGROUND COLORS
+// BACKGROUND COLORS (signal triggers)
 // =====================================================
 
-bgcolor(buySignal ? color.new(color.green, 85) : na)
-bgcolor(sellSignal ? color.new(color.red, 85) : na)
+bgcolor(buySignal  and showBuy  ? color.new(colorBuyZone,  80) : na, title="BUY trigger bg")
+bgcolor(sellSignal and showSell ? color.new(colorSellZone, 80) : na, title="SELL trigger bg")
 
 // =====================================================
 // WATERMARK
 // =====================================================
 
 wmSize = switch watermarkSize
-    "tiny"  => size.tiny
-    "small" => size.small
-    "normal"=> size.normal
-    "large" => size.large
-    "huge"  => size.huge
+    "tiny"   => size.tiny
+    "small"  => size.small
+    "normal" => size.normal
+    "large"  => size.large
+    "huge"   => size.huge
     => size.huge
 
+// Anchor watermark to a stable midpoint between thresholds (no flicker)
+wmY = (buyThreshold + sellThreshold) / 2
+
 if showWatermark and barstate.islast
-    var label wmLabel = label.new(bar_index, ratio, watermarkText, 
-         color=color.new(color.black, 100), 
-         textcolor=watermarkColor, 
-         style=label.style_none, 
+    var label wmLabel = label.new(bar_index, wmY, watermarkText,
+         color=color.new(color.black, 100),
+         textcolor=watermarkColor,
+         style=label.style_none,
          size=wmSize,
          textalign=text.align_center)
-    label.set_xy(wmLabel, bar_index, ratio)
+    label.set_xy(wmLabel, bar_index, wmY)
     label.set_text(wmLabel, watermarkText)
 
 // =====================================================
 // BUY / SELL LABELS
 // =====================================================
 
-if showLabels and buySignal
-    label.new(
-         bar_index,
-         ratio,
-         "BUY",
+if showBuy and buySignal
+    label.new(bar_index, ratio, "BUY",
          style=label.style_label_up,
-         color=color.green,
+         color=colorBuyZone,
          textcolor=color.white,
          size=size.small)
 
-if showLabels and sellSignal
-    label.new(
-         bar_index,
-         ratio,
-         "SELL",
+if showSell and sellSignal
+    label.new(bar_index, ratio, "SELL",
          style=label.style_label_down,
-         color=color.red,
+         color=colorSellZone,
          textcolor=color.white,
          size=size.small)
 
@@ -149,12 +162,6 @@ if showLabels and sellSignal
 // ALERTS
 // =====================================================
 
-alertcondition(
-     buySignal,
-     title="BUY ALERT",
-     message="Long Term BUY Signal")
-
-alertcondition(
-     sellSignal,
-     title="SELL ALERT",
-     message="Long Term SELL Signal")
+alertcondition(buySignal,  title="BUY ALERT",  message="Long Term BUY Signal")
+alertcondition(sellSignal, title="SELL ALERT", message="Long Term SELL Signal")
+alertcondition(buySignal or sellSignal, title="ANY signal", message="Long Term BUY or SELL signal")
