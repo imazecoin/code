@@ -1,47 +1,63 @@
-# 💼 Master Investment Plan
+# Master Investment Plan
 
-> **Profile:** Long-term investor (10+ έτη), Trading 212, UCITS-first για tax efficiency στην Ελλάδα
+> **Profile:** Long-term investor (10+ έτη), Trading 212, **100% UCITS Acc** για tax efficiency στην Ελλάδα
 > **Last updated:** Μάιος 2026
 
 ---
 
-## 🎯 Στρατηγική Φιλοσοφία
+## Στρατηγική Φιλοσοφία
 
 - **Long-term horizon:** 5 έτη benchmark, μπορώ να επεκτείνω σε 10+ έτη αν χρειαστεί
-- **Tax efficiency:** UCITS Accumulating ETFs σε ευρωπαϊκά regulated markets (μηδέν φόρος υπεραξίας στην Ελλάδα για φυσικά πρόσωπα)
+- **Tax efficiency:** Μόνο UCITS Accumulating ETFs σε ευρωπαϊκά regulated markets (μηδέν φόρος υπεραξίας στην Ελλάδα για φυσικά πρόσωπα)
 - **DCA over timing:** Σταθερές μηνιαίες εισροές, όχι market timing
 - **Mechanical execution:** AutoInvest + Pies, όχι emotional decisions
-- **Diversification:** Παγκόσμια κάλυψη μέσω core ETFs, με μικρό satellite για ποιότητα/conviction
+- **KISS principle:** 3 ETFs, παγκόσμια κάλυψη, καμία πολυπλοκότητα
 
 ---
 
-## 📊 ETF Portfolio — €100/μήνα
+## ETF Portfolio — €100/μήνα
 
 | Ticker | ISIN | Allocation | Ρόλος |
 |---|---|---|---|
-| **VWCE** | IE00BK5BQT80 | 50% (€50) | Core παγκόσμια βάση (FTSE All-World, Acc) |
-| **SPYL** | IE000XZSV718 | 25% (€25) | US tilt (S&P 500, Acc, TER 0.03%) |
+| **VWCE** | IE00BK5BQT80 | 55% (€55) | Core παγκόσμια βάση (FTSE All-World, Acc) |
+| **SPYL** | IE000XZSV718 | 30% (€30) | US tilt (S&P 500, Acc, TER 0.03%) |
 | **EXUS** | IE0006WW1TQ4 | 15% (€15) | Ex-US developed (MSCI World ex USA, Acc) |
-| **SPGI** | US78409V1044 | 10% (€10) | Quality compounder satellite |
+
+### Τρέχουσα κατάσταση χαρτοφυλακίου
+
+| Ticker | Ποσό | % |
+|---|---|---|
+| VWCE | €100 | 67% |
+| SPYL | €40 | 27% |
+| EXUS | €10 | 7% |
+| **Σύνολο** | **€150** | 100% |
 
 ### Setup στο Trading 212
 
 1. **New Pie** → "Long-term Core"
-2. Πρόσθεσε τα 4 instruments με τα ποσοστά πάνω
+2. Πρόσθεσε τα 3 ETFs με τα target percentages (55/30/15)
 3. **AutoInvest:** €100/μήνα, 1η κάθε μήνα
 4. **Auto-rebalance:** ON σε κάθε deposit
 5. **Self-managed:** ναι (όχι Pie templates)
 
-### ⚠️ Σημαντικά Notes
+### Σημαντικά Notes
 
-- **VWCE ≈ 63% US + 37% rest of world** — άρα με VWCE 50% + SPYL 25% δίνω US tilt συνειδητά
-- **SPGI = US μετοχή** σε USD → 0.15% FX fee στο T212 + 15% US dividend withholding (W-8BEN). Κρατώ <10% γι' αυτό.
+- **VWCE ≈ 63% US + 37% rest of world** — άρα με VWCE 55% + SPYL 30% δίνω US tilt συνειδητά
 - **EXUS ΔΕΝ έχει emerging markets** — τα EM παίρνω από VWCE
 - Κανένα bond allocation γιατί ορίζοντας ≥10 έτη και emergency fund είναι ξεχωριστά
+- **100% σε EUR-listed ETFs** → καμία FX fee στο Trading 212
+- **100% Accumulating** → καμία διανομή μερίσματος → καμία φορολογία στα μερίσματα
+
+### Ιστορικό αλλαγών χαρτοφυλακίου
+
+- **Αρχική κατανομή:** VWCE, SPYL, O, EXUS, SPGI (5 holdings)
+- **Step 1:** Πούλησα Realty Income (O) → US REIT, δεν ταίριαζε με UCITS strategy → επανεπένδυση στο VWCE
+- **Step 2:** Πούλησα S&P Global (SPGI) → US μετοχή με 15% capital gains tax + 0.15% FX fees → επανεπένδυση στο VWCE
+- **Τελική κατάσταση:** 3 UCITS ETFs, 100% tax-efficient
 
 ---
 
-## 🪙 Crypto Strategy — €20-50/μήνα
+## Crypto Strategy — €20-50/μήνα
 
 | Asset | Allocation | Πλατφόρμα |
 |---|---|---|
@@ -58,13 +74,14 @@
 ### Execution Rules
 
 ```
-✅ DCA mechanically (Recurring Buy εβδομαδιαία ή μηνιαία)
-✅ USDC σε Bybit Earn όσο περιμένει σειρά (4-5% APR)
-✅ Max 20-30% των μηνιαίων εισροών σε crypto
-✅ Cold wallet (Ledger Nano S Plus / Trezor Safe 3) στα €1.000+
-❌ ΟΧΙ market timing
-❌ ΟΧΙ leveraged products
-❌ ΟΧΙ keep on exchange long-term
+DCA mechanically (Recurring Buy εβδομαδιαία ή μηνιαία)
+USDC σε Bybit Earn όσο περιμένει σειρά (4-5% APR)
+Max 20-30% των μηνιαίων εισροών σε crypto
+Cold wallet (Ledger Nano S Plus / Trezor Safe 3) στα €1.000+
+
+ΟΧΙ market timing
+ΟΧΙ leveraged products
+ΟΧΙ keep on exchange long-term
 ```
 
 ### Predefined Exit Rules
@@ -75,19 +92,19 @@
 Κρατάω 50% για «πάντα»
 ```
 
-> 📝 Note: Φορολογία crypto στην Ελλάδα είναι γκρίζα ζώνη — γενικά 15% capital gains όταν ρευστοποιώ. **Κρατώ logs όλων των αγορών/πωλήσεων.**
+> Note: Φορολογία crypto στην Ελλάδα είναι γκρίζα ζώνη — γενικά 15% capital gains όταν ρευστοποιώ. **Κρατώ logs όλων των αγορών/πωλήσεων.**
 
 ---
 
-## 💵 Emergency Fund
+## Emergency Fund
 
 - **Στόχος:** 3-6 μήνες έξοδα σε liquid accounts
 - **Πού:** HYSA, money market funds, ή Trading 212 «Interest on uninvested cash» (~3% σε EUR)
-- **Status:** ✅ Υπάρχει ξεχωριστά
+- **Status:** Υπάρχει ξεχωριστά
 
 ---
 
-## 🔍 Review & Maintenance Cadence
+## Review & Maintenance Cadence
 
 | Συχνότητα | Ενέργεια |
 |---|---|
@@ -99,7 +116,7 @@
 
 ---
 
-## 🚦 Behavioral Rules (το πιο σημαντικό κομμάτι)
+## Behavioral Rules (το πιο σημαντικό κομμάτι)
 
 1. **Όταν το BTC κάνει -50%** → continue DCA
 2. **Όταν το VWCE κάνει -20%** → continue DCA
@@ -113,34 +130,38 @@
 
 ---
 
-## 📋 Action Items
+## Action Items
 
-### ✅ Done
+### Done
 - [x] Πώληση Realty Income (O) — δεν ταίριαζε με UCITS strategy
-- [x] Επανεπένδυση €25 στο VWCE
+- [x] Επανεπένδυση €25 στο VWCE (από O)
+- [x] Πώληση S&P Global (SPGI) — απλοποίηση + tax efficiency
+- [x] Επανεπένδυση €25 στο VWCE (από SPGI)
 
-### 📅 This week
-- [ ] Trading 212 Pie setup με τα 4 instruments
+### This week
+- [ ] Trading 212 Pie setup με τα 3 ETFs (55/30/15)
 - [ ] AutoInvest €100/μήνα ενεργοποίηση
 - [ ] Bybit Earn για το USDC (4-5% APR)
 
-### 📅 Επόμενος μήνας
+### Επόμενος μήνας
 - [ ] Ξεκίνα recurring BTC buy (€20-50/μήνα)
 
-### 📅 Στα €1.000 BTC
+### Στα €1.000 BTC
 - [ ] Αγορά Ledger Nano S Plus (~€80)
 - [ ] Μεταφορά BTC σε cold wallet
 
 ---
 
-## 📚 Quick Reference: Φορολογία Ελλάδα
+## Quick Reference: Φορολογία Ελλάδα
 
 | Asset | Capital Gains | Dividends |
 |---|---|---|
 | **UCITS Acc ETFs (EU regulated)** | 0% | N/A (δεν διανέμουν) |
-| **US μετοχές (SPGI, etc.)** | 15% | 15% US withholding + 5% GR (συμψηφισμός) |
+| **US μετοχές** | 15% | 15% US withholding + 5% GR (συμψηφισμός) |
 | **Crypto** | ~15% (γκρίζα ζώνη) | N/A |
+
+Το παρόν χαρτοφυλάκιο είναι **100% UCITS Acc** → **μηδενικός φόρος** σε υπεραξία και μερίσματα.
 
 ---
 
-*Strategy designed για consistency, όχι maximum returns. Boring is the goal.* 💪
+*Strategy designed για consistency, όχι maximum returns. Boring is the goal.*
