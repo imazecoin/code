@@ -11,49 +11,76 @@
 - **Tax efficiency:** Μόνο UCITS Accumulating ETFs σε ευρωπαϊκά regulated markets (μηδέν φόρος υπεραξίας στην Ελλάδα για φυσικά πρόσωπα)
 - **DCA over timing:** Σταθερές μηνιαίες εισροές, όχι market timing
 - **Mechanical execution:** AutoInvest + Pies, όχι emotional decisions
-- **KISS principle:** 3 ETFs, παγκόσμια κάλυψη, καμία πολυπλοκότητα
+- **KISS principle:** 2 ETFs, παγκόσμια κάλυψη, μηδέν overlap
 
 ---
 
-## ETF Portfolio — €100/μήνα
+## ETF Portfolio — €100/μήνα DCA
+
+### Νέα κατανομή (active investments)
 
 | Ticker | ISIN | Allocation | Ρόλος |
 |---|---|---|---|
-| **VWCE** | IE00BK5BQT80 | 55% (€55) | Core παγκόσμια βάση (FTSE All-World, Acc) |
-| **SPYL** | IE000XZSV718 | 30% (€30) | US tilt (S&P 500, Acc, TER 0.03%) |
-| **EXUS** | IE0006WW1TQ4 | 15% (€15) | Ex-US developed (MSCI World ex USA, Acc) |
+| **VWCE** | IE00BK5BQT80 | 90% (€90) | Core παγκόσμια βάση (FTSE All-World Large+Mid, Acc) |
+| **IUSN** | IE00BF4RFH31 | 10% (€10) | World Small Cap exposure (MSCI World Small Cap, Acc) |
+
+### Frozen positions (κρατάω, δεν προσθέτω)
+
+| Ticker | ISIN | Status |
+|---|---|---|
+| **SPYL** | IE000XZSV718 | Hold, no new contributions |
+| **EXUS** | IE0006WW1TQ4 | Hold, no new contributions |
+
+> Τα SPYL & EXUS μένουν στο χαρτοφυλάκιο αλλά δεν παίρνουν νέα χρήματα. Με DCA στο VWCE+IUSN θα «αραιώσουν» μόνα τους με τον χρόνο.
+> Είναι UCITS Acc → καμία φορολογική επίπτωση αν κάποτε αποφασιστεί cleanup.
 
 ### Τρέχουσα κατάσταση χαρτοφυλακίου
 
 | Ticker | Ποσό | % |
 |---|---|---|
 | VWCE | €100 | 67% |
-| SPYL | €40 | 27% |
-| EXUS | €10 | 7% |
+| SPYL | €40 (frozen) | 27% |
+| EXUS | €10 (frozen) | 7% |
+| IUSN | €0 (νέο) | 0% |
 | **Σύνολο** | **€150** | 100% |
+
+### Γιατί VWCE + IUSN
+
+```
+VWCE = Large + Mid cap (developed + emerging markets)
+IUSN = Small cap (developed markets)
+Μαζί = ~95%+ της παγκόσμιας κεφαλαιοποίησης
+```
+
+- **Μηδέν overlap** μεταξύ των δύο ETFs
+- **Συμπληρωματικά** indices (το ένα αρχίζει εκεί που τελειώνει το άλλο)
+- **Small cap premium**: ιστορικά τα small caps έχουν υπεραποδώσει σε ορίζοντες 10-20+ έτη (Fama-French research)
+- **Weighted TER ≈ 0,23%** (VWCE 0,22% × 90% + IUSN 0,35% × 10%)
 
 ### Setup στο Trading 212
 
-1. **New Pie** → "Long-term Core"
-2. Πρόσθεσε τα 3 ETFs με τα target percentages (55/30/15)
-3. **AutoInvest:** €100/μήνα, 1η κάθε μήνα
-4. **Auto-rebalance:** ON σε κάθε deposit
-5. **Self-managed:** ναι (όχι Pie templates)
+1. **Update Pie** → "Long-term Core"
+2. Νέα σύνθεση: VWCE 90% + IUSN 10%
+3. Αφαίρεσε ή «πάγωσε» SPYL & EXUS από το Pie (ώστε να μην παίρνουν νέα χρήματα)
+4. **AutoInvest:** €100/μήνα, 1η κάθε μήνα
+5. **Auto-rebalance:** ON σε κάθε deposit
+6. **Self-managed:** ναι (όχι Pie templates)
 
 ### Σημαντικά Notes
 
-- **VWCE ≈ 63% US + 37% rest of world** — άρα με VWCE 55% + SPYL 30% δίνω US tilt συνειδητά
-- **EXUS ΔΕΝ έχει emerging markets** — τα EM παίρνω από VWCE
-- Κανένα bond allocation γιατί ορίζοντας ≥10 έτη και emergency fund είναι ξεχωριστά
+- **VWCE ≈ 63% US + 37% rest of world** — ήδη έχω US tilt μέσω αυτού
+- **IUSN = developed markets only** — δεν περιλαμβάνει EM small caps (αμελητέο για 10% allocation)
 - **100% σε EUR-listed ETFs** → καμία FX fee στο Trading 212
 - **100% Accumulating** → καμία διανομή μερίσματος → καμία φορολογία στα μερίσματα
+- Κανένα bond allocation γιατί ορίζοντας ≥10 έτη και emergency fund είναι ξεχωριστά
 
 ### Ιστορικό αλλαγών χαρτοφυλακίου
 
-- **Αρχική κατανομή:** VWCE, SPYL, O, EXUS, SPGI (5 holdings)
+- **Initial:** VWCE, SPYL, O, EXUS, SPGI (5 holdings)
 - **Step 1:** Πούλησα Realty Income (O) → US REIT, δεν ταίριαζε με UCITS strategy → επανεπένδυση στο VWCE
 - **Step 2:** Πούλησα S&P Global (SPGI) → US μετοχή με 15% capital gains tax + 0.15% FX fees → επανεπένδυση στο VWCE
-- **Τελική κατάσταση:** 3 UCITS ETFs, 100% tax-efficient
+- **Step 3:** Πάγωμα SPYL & EXUS, προσθήκη IUSN (small cap exposure) → VWCE 90% + IUSN 10% για νέα DCA
+- **Current:** 100% UCITS Acc, 2 active + 2 frozen ETFs, μηδέν overlap στα νέα DCA
 
 ---
 
@@ -120,11 +147,12 @@ Cold wallet (Ledger Nano S Plus / Trezor Safe 3) στα €1.000+
 
 1. **Όταν το BTC κάνει -50%** → continue DCA
 2. **Όταν το VWCE κάνει -20%** → continue DCA
-3. **Όταν φίλος προτείνει «το hot pick»** → χαμογελάω και continue DCA
-4. **Όταν τα media λένε «κρίση»** → continue DCA
-5. **Όταν τα media λένε «είναι το peak»** → continue DCA
-6. **Σε bear market** → δεν κοιτάζω χαρτοφυλάκιο
-7. **Σε bull market** → δεν κοιτάζω χαρτοφυλάκιο
+3. **Όταν το IUSN κάνει -30%** (small caps κουνιούνται πιο πολύ) → continue DCA
+4. **Όταν φίλος προτείνει «το hot pick»** → χαμογελάω και continue DCA
+5. **Όταν τα media λένε «κρίση»** → continue DCA
+6. **Όταν τα media λένε «είναι το peak»** → continue DCA
+7. **Σε bear market** → δεν κοιτάζω χαρτοφυλάκιο
+8. **Σε bull market** → δεν κοιτάζω χαρτοφυλάκιο
 
 > Το πιο σημαντικό δεν είναι να επιλέξω σωστά. Είναι να μη χαλάσω το πλάνο.
 
@@ -137,9 +165,11 @@ Cold wallet (Ledger Nano S Plus / Trezor Safe 3) στα €1.000+
 - [x] Επανεπένδυση €25 στο VWCE (από O)
 - [x] Πώληση S&P Global (SPGI) — απλοποίηση + tax efficiency
 - [x] Επανεπένδυση €25 στο VWCE (από SPGI)
+- [x] Έρευνα small cap exposure → επιλογή IUSN
 
 ### This week
-- [ ] Trading 212 Pie setup με τα 3 ETFs (55/30/15)
+- [ ] Update Trading 212 Pie: VWCE 90% + IUSN 10%
+- [ ] Αφαίρεση/πάγωμα SPYL & EXUS από το Pie
 - [ ] AutoInvest €100/μήνα ενεργοποίηση
 - [ ] Bybit Earn για το USDC (4-5% APR)
 
