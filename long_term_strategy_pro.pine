@@ -107,20 +107,14 @@ buyLine  = hline(buyThreshold,  "Buy Zone",  color=color.new(color.green, 30), l
 sellLine = hline(sellThreshold, "Sell Zone", color=color.new(color.red, 30),   linestyle=hline.style_dashed)
 hline(0, "Zero", color=color.new(color.gray, 70), linestyle=hline.style_dotted)
 
-// Optional zone shading inside the oscillator (subtle)
-topLine = hline(100, "Top",    color=na, editable=false)
-botLine = hline(0,   "Bottom", color=na, editable=false)
+// Zone shading inside the oscillator (subtle).
+// IMPORTANT: topLine and botLine ALSO act as the Y-axis anchors. If lockScale
+// is ON, they use scaleMin/scaleMax (e.g. 0-50). If OFF, they use 0-100.
+// This is what keeps the pane at a stable scale instead of auto-zooming.
+topLine = hline(lockScale ? scaleMax : 100.0, "Top",    color=na, editable=false)
+botLine = hline(lockScale ? scaleMin : 0.0,   "Bottom", color=na, editable=false)
 fill(topLine, buyLine,  color=showZoneShading ? color.new(colorBuyZone,  92) : na, title="BUY zone shade")
 fill(botLine, sellLine, color=showZoneShading ? color.new(colorSellZone, 92) : na, title="SELL zone shade")
-
-// =====================================================
-// SCALE LOCK (keeps pane Y-axis stable)
-// Two transparent plots that anchor the Y-axis range so TradingView
-// does not auto-zoom every time the ratio changes.
-// =====================================================
-
-plot(lockScale ? scaleMin : na, title="Scale Min", color=color.new(color.white, 100), display=display.pane, editable=false)
-plot(lockScale ? scaleMax : na, title="Scale Max", color=color.new(color.white, 100), display=display.pane, editable=false)
 
 // =====================================================
 // BACKGROUND COLORS (signal triggers)
