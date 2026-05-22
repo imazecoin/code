@@ -1,5 +1,5 @@
 //@version=5
-indicator("SMMA Overlay with Fill + Long-Term Signals", shorttitle="SMMA + B/S/DCA", overlay=true, max_labels_count=500)
+indicator("imazecoin BUY_SALE_DCA Signals Pro", shorttitle="imazecoin B/S/D Signals Pro", overlay=true, max_labels_count=500)
 
 // ══════════════════════════════════════════════════════════════════════════════
 // INPUTS
