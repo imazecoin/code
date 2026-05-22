@@ -24,8 +24,10 @@ dashTextSize  = input.string("small", "Dashboard Text Size", options=["tiny", "s
 // ── Watermark Settings ──
 showWatermark = input.bool(true, "Show Watermark", group="Watermark")
 watermarkText = input.string("IMAZECOIN", "Watermark Text", group="Watermark")
-watermarkColor= input.color(color.new(color.white, 90), "Watermark Color", group="Watermark")
-watermarkSize = input.string("large", "Watermark Size", options=["tiny", "small", "normal", "large", "huge"], group="Watermark")
+watermarkColor= input.color(color.new(color.white, 85), "Watermark Color", group="Watermark", tooltip="Lower transparency value (e.g. 70) = more visible. Higher (e.g. 95) = subtle.")
+watermarkSize = input.string("huge", "Watermark Size", options=["tiny", "small", "normal", "large", "huge"], group="Watermark")
+wmOffsetBars  = input.int(15, "Watermark X offset (bars right of last candle)", minval=0, maxval=100, group="Watermark", tooltip="Position the watermark in the empty space to the RIGHT of the latest candle so candles do not cover it. 0 = at last candle (may overlap), 15-30 = recommended.")
+wmVerticalPos = input.string("Middle", "Watermark Vertical Position", options=["Top", "Middle", "Bottom"], group="Watermark", tooltip="Vertical placement based on recent price range.")
 
 // ── Signal Display Toggles (NEW) ──
 showBuy   = input.bool(true, "Show BUY signals",  group="Signals: Display")
@@ -151,6 +153,8 @@ plotshape(showDCA  and dcaSignal,  title="DCA",  style=shape.labelup,   location
 
 // ══════════════════════════════════════════════════════════════════════════════
 // WATERMARK
+// Positioned in the empty space to the RIGHT of the last bar so that candles
+// do not cover it. Vertically anchored using the recent 100-bar price range.
 // ══════════════════════════════════════════════════════════════════════════════
 
 wmSize = switch watermarkSize
@@ -159,16 +163,25 @@ wmSize = switch watermarkSize
     "normal" => size.normal
     "large"  => size.large
     "huge"   => size.huge
-    => size.large
+    => size.huge
+
+// Compute Y position based on recent price range (so watermark sits in the
+// visible area regardless of asset price scale).
+wmRecentHigh = ta.highest(high, 100)
+wmRecentLow  = ta.lowest(low,  100)
+wmRange      = wmRecentHigh - wmRecentLow
+wmY          = wmVerticalPos == "Top"    ? wmRecentHigh - wmRange * 0.10 :
+               wmVerticalPos == "Bottom" ? wmRecentLow  + wmRange * 0.10 :
+                                           (wmRecentHigh + wmRecentLow) / 2
 
 if showWatermark and barstate.islast
-    var label wmLabel = label.new(bar_index, high, watermarkText,
+    var label wmLabel = label.new(bar_index + wmOffsetBars, wmY, watermarkText,
          color=color.new(color.black, 100),
          textcolor=watermarkColor,
          style=label.style_none,
          size=wmSize,
          textalign=text.align_center)
-    label.set_xy(wmLabel, bar_index, high)
+    label.set_xy(wmLabel, bar_index + wmOffsetBars, wmY)
     label.set_text(wmLabel, watermarkText)
 
 // ══════════════════════════════════════════════════════════════════════════════
