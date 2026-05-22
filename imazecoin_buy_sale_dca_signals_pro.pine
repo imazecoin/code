@@ -57,17 +57,6 @@ dcaColor   = input.color(color.new(color.blue, 0),  "DCA label color",  group="S
 // Note: plotshape() requires a const string for size, so the label sizes are
 // fixed (BUY/SELL = normal, DCA = small) instead of user-configurable.
 
-// ── Support & Resistance Settings (NEW) ──
-showSR       = input.bool(true, "Show Support & Resistance lines", group="Support & Resistance", tooltip="Master toggle: enable / disable automatic S/R lines.")
-srLeft       = input.int(15, "Pivot Left bars",  minval=1, maxval=100, group="Support & Resistance", tooltip="How many bars to the LEFT must confirm the pivot. Higher = fewer but stronger S/R levels.")
-srRight      = input.int(15, "Pivot Right bars", minval=1, maxval=100, group="Support & Resistance", tooltip="How many bars to the RIGHT must confirm the pivot. Note: lines appear N bars AFTER the actual pivot due to confirmation delay.")
-srMaxLines   = input.int(5, "Max lines per type (S and R)", minval=1, maxval=20, group="Support & Resistance", tooltip="Keep only the N most recent SUPPORT lines AND the N most recent RESISTANCE lines. Older ones are auto-deleted to keep the chart clean.")
-srResColor   = input.color(color.new(color.red, 0),   "Resistance color", group="Support & Resistance")
-srSupColor   = input.color(color.new(color.green, 0), "Support color",    group="Support & Resistance")
-srLineWidth  = input.int(1, "Line width", minval=1, maxval=4, group="Support & Resistance")
-srLineStyle  = input.string("solid", "Line style", options=["solid", "dashed", "dotted"], group="Support & Resistance")
-srShowLabels = input.bool(false, "Show price labels next to lines", group="Support & Resistance", tooltip="Display the price value at each S/R line. Off by default to avoid clutter.")
-
 // ══════════════════════════════════════════════════════════════════════════════
 // MOVING AVERAGE CALCULATION
 // ══════════════════════════════════════════════════════════════════════════════
@@ -159,46 +148,6 @@ if dcaSignal
 plotshape(showBuy  and buySignal,  title="BUY",  style=shape.labelup,   location=location.belowbar, color=buyColor,  text="BUY",  textcolor=color.white, size=size.normal)
 plotshape(showSell and sellSignal, title="SELL", style=shape.labeldown, location=location.abovebar, color=sellColor, text="SELL", textcolor=color.white, size=size.normal)
 plotshape(showDCA  and dcaSignal,  title="DCA",  style=shape.labelup,   location=location.belowbar, color=dcaColor,  text="DCA",  textcolor=color.white, size=size.small)
-
-// ══════════════════════════════════════════════════════════════════════════════
-// SUPPORT & RESISTANCE LINES (NEW)
-// Detects swing highs (resistance) and swing lows (support) using pivots.
-// Lines extend to the right; oldest are auto-removed when limit is reached.
-// ══════════════════════════════════════════════════════════════════════════════
-
-phigh = ta.pivothigh(srLeft, srRight)
-plow  = ta.pivotlow(srLeft, srRight)
-
-lineStyleConst = srLineStyle == "dashed" ? line.style_dashed : srLineStyle == "dotted" ? line.style_dotted : line.style_solid
-
-var line[]  srResLines  = array.new<line>()
-var line[]  srSupLines  = array.new<line>()
-var label[] srResLabels = array.new<label>()
-var label[] srSupLabels = array.new<label>()
-
-// Resistance: when a pivot HIGH is confirmed
-if showSR and not na(phigh)
-    newResLine = line.new(bar_index - srRight, phigh, bar_index, phigh, extend=extend.right, color=srResColor, width=srLineWidth, style=lineStyleConst)
-    array.push(srResLines, newResLine)
-    if srShowLabels
-        newResLabel = label.new(bar_index, phigh, str.tostring(phigh, format.mintick), style=label.style_none, textcolor=srResColor, size=size.small)
-        array.push(srResLabels, newResLabel)
-    while array.size(srResLines) > srMaxLines
-        line.delete(array.shift(srResLines))
-    while array.size(srResLabels) > srMaxLines
-        label.delete(array.shift(srResLabels))
-
-// Support: when a pivot LOW is confirmed
-if showSR and not na(plow)
-    newSupLine = line.new(bar_index - srRight, plow, bar_index, plow, extend=extend.right, color=srSupColor, width=srLineWidth, style=lineStyleConst)
-    array.push(srSupLines, newSupLine)
-    if srShowLabels
-        newSupLabel = label.new(bar_index, plow, str.tostring(plow, format.mintick), style=label.style_none, textcolor=srSupColor, size=size.small)
-        array.push(srSupLabels, newSupLabel)
-    while array.size(srSupLines) > srMaxLines
-        line.delete(array.shift(srSupLines))
-    while array.size(srSupLabels) > srMaxLines
-        label.delete(array.shift(srSupLabels))
 
 // ══════════════════════════════════════════════════════════════════════════════
 // WATERMARK
